@@ -28,6 +28,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.Html;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
@@ -42,8 +43,10 @@ import android.widget.Toast;
 
 import com.folioreader.Config;
 import com.folioreader.Constants;
+import com.folioreader.FolioReader;
 import com.folioreader.R;
 import com.folioreader.model.HighlightImpl;
+import com.folioreader.model.ReadPosition;
 import com.folioreader.model.event.AnchorIdEvent;
 import com.folioreader.model.event.MediaOverlayHighlightStyleEvent;
 import com.folioreader.model.event.MediaOverlayPlayPauseEvent;
@@ -55,7 +58,6 @@ import com.folioreader.ui.folio.presenter.MainMvpView;
 import com.folioreader.ui.folio.presenter.MainPresenter;
 import com.folioreader.util.AppUtil;
 import com.folioreader.util.FileUtil;
-import com.folioreader.util.FolioReader;
 import com.folioreader.util.UiUtil;
 import com.folioreader.view.ConfigBottomSheetDialogFragment;
 import com.folioreader.view.DirectionalViewpager;
@@ -91,6 +93,7 @@ public class FolioActivity
     public static final String INTENT_EPUB_SOURCE_PATH = "com.folioreader.epub_asset_path";
     public static final String INTENT_EPUB_SOURCE_TYPE = "epub_source_type";
     public static final String INTENT_HIGHLIGHTS_LIST = "highlight_list";
+    public static final String EXTRA_READ_POSITION = "com.folioreader.extra.READ_POSITION";
 
     public enum EpubSourceType {
         RAW,
@@ -110,7 +113,7 @@ public class FolioActivity
 
     private int mChapterPosition;
     private FolioPageFragmentAdapter mFolioPageFragmentAdapter;
-    private int mWebViewScrollPosition;
+    private ReadPosition entryReadPosition;
     private ConfigBottomSheetDialogFragment mConfigBottomSheetDialogFragment;
     private TextView title;
 
@@ -234,12 +237,6 @@ public class FolioActivity
     }
 
     @Override
-    public void onBackPressed() {
-        saveBookState();
-        super.onBackPressed();
-    }
-
-    @Override
     public void onOrientationChange(int orentation) {
         if (orentation == 0) {
             mFolioPageViewPager.setDirection(DirectionalViewpager.Direction.VERTICAL);
@@ -285,18 +282,58 @@ public class FolioActivity
         if (mSpineReferenceList != null) {
             mFolioPageFragmentAdapter = new FolioPageFragmentAdapter(getSupportFragmentManager(), mSpineReferenceList, bookFileName, mBookId);
             mFolioPageViewPager.setAdapter(mFolioPageFragmentAdapter);
+
+            entryReadPosition = getIntent().getParcelableExtra(FolioActivity.EXTRA_READ_POSITION);
+            mFolioPageViewPager.setCurrentItem(getChapterIndex(entryReadPosition));
+        }
+    }
+
+    /**
+     * Returns the index of the chapter by following priority -
+     * 1. id
+     * 2. href
+     * 3. index
+     * @param readPosition Last read position
+     * @return index of the chapter
+     */
+    private int getChapterIndex(ReadPosition readPosition) {
+
+        if (readPosition == null) {
+            return 0;
+
+        } else if (!TextUtils.isEmpty(readPosition.getChapterId())) {
+            return getChapterIndex("id", readPosition.getChapterId());
+
+        } else if (!TextUtils.isEmpty(readPosition.getChapterHref())) {
+            return getChapterIndex("href", readPosition.getChapterHref());
+
+        } else if (readPosition.getChapterIndex() > -1
+                && readPosition.getChapterIndex() < mSpineReferenceList.size()) {
+            return readPosition.getChapterIndex();
         }
 
-        if (AppUtil.checkPreviousBookStateExist(FolioActivity.this, bookFileName)) {
-            mFolioPageViewPager.setCurrentItem(AppUtil.getPreviousBookStatePosition(FolioActivity.this, bookFileName));
+        return 0;
+    }
+
+    private int getChapterIndex(String caseString, String value) {
+
+        for (int i = 0; i < mSpineReferenceList.size(); i++) {
+            switch (caseString) {
+                case "id":
+                    if (mSpineReferenceList.get(i).getId().equals(value))
+                        return i;
+                case "href":
+                    if (mSpineReferenceList.get(i).getOriginalHref().equals(value))
+                        return i;
+            }
         }
+        return 0;
     }
 
     private void configDrawerLayoutButtons() {
         findViewById(R.id.btn_close).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                saveBookState();
                 finish();
             }
         });
@@ -308,12 +345,6 @@ public class FolioActivity
                 mConfigBottomSheetDialogFragment.show(getSupportFragmentManager(), mConfigBottomSheetDialogFragment.getTag());
             }
         });
-    }
-
-    private void saveBookState() {
-        if (mSpineReferenceList.size() > 0) {
-            AppUtil.saveBookState(FolioActivity.this, bookFileName, mFolioPageViewPager.getCurrentItem(), mWebViewScrollPosition);
-        }
     }
 
     @Override
@@ -337,8 +368,14 @@ public class FolioActivity
     }
 
     @Override
-    public void setLastWebViewPosition(int position) {
-        this.mWebViewScrollPosition = position;
+    public ReadPosition getEntryReadPosition() {
+
+        if (entryReadPosition != null) {
+            ReadPosition tempReadPosition = entryReadPosition;
+            entryReadPosition = null;
+            return tempReadPosition;
+        }
+        return null;
     }
 
     @Override
@@ -411,7 +448,8 @@ public class FolioActivity
         }
     }
 
-    public int getmChapterPosition() {
+    @Override
+    public int getChapterPosition() {
         return mChapterPosition;
     }
 
