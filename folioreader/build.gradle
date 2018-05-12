@@ -29,7 +29,7 @@ ext {
 android {
     useLibrary 'org.apache.http.legacy'
     compileSdkVersion 26
-    buildToolsVersion "26.0.2"
+    buildToolsVersion '27.0.3'
 
     defaultConfig {
         versionCode 1
@@ -79,26 +79,26 @@ android {
 }
 
 dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
-    compile project(':webViewMarker')
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation project(':webViewMarker')
 
     final ANDROID_LIB_VERSION = '26.0.2'
 
     //noinspection GradleDependency
-    compile "com.android.support:appcompat-v7:$ANDROID_LIB_VERSION"
-    compile "com.android.support:recyclerview-v7:$ANDROID_LIB_VERSION"
-    compile "com.android.support:support-v4:$ANDROID_LIB_VERSION"
-    compile "com.android.support:design:$ANDROID_LIB_VERSION"
+    implementation "com.android.support:appcompat-v7:$ANDROID_LIB_VERSION"
+    implementation "com.android.support:recyclerview-v7:$ANDROID_LIB_VERSION"
+    implementation "com.android.support:support-v4:$ANDROID_LIB_VERSION"
+    implementation "com.android.support:design:$ANDROID_LIB_VERSION"
 
-    compile 'com.daimajia.swipelayout:library:1.2.0@aar'
+    implementation 'com.daimajia.swipelayout:library:1.2.0@aar'
     // r2-streamer
     final R2_STREAMER_VERSION = '0.1.4'
 
-    compile "org.readium:r2-fetcher:$R2_STREAMER_VERSION"
-    compile "org.readium:r2-parser:$R2_STREAMER_VERSION"
-    compile "org.readium:r2-server:$R2_STREAMER_VERSION"
+    implementation "org.readium:r2-fetcher:$R2_STREAMER_VERSION"
+    implementation "org.readium:r2-parser:$R2_STREAMER_VERSION"
+    implementation "org.readium:r2-server:$R2_STREAMER_VERSION"
 
-    compile 'org.greenrobot:eventbus:3.1.1'
+    implementation 'org.greenrobot:eventbus:3.1.1'
 }
 
 apply from: '../folioreader/bintray/installv1.gradle'
